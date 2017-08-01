@@ -1,10 +1,11 @@
 package com.brico.compare.service;
 
+import javax.annotation.PreDestroy;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -25,7 +26,6 @@ import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.springframework.stereotype.Service;
 
 import com.brico.compare.entity.Constants;
-import com.brico.compare.entity.Product;
 import com.brico.compare.entity.SimpleProduct;
 import com.google.gson.Gson;
 
@@ -57,10 +57,10 @@ public class SearchService {
 				int index = 0;
 				BoolQueryBuilder qb = QueryBuilders.boolQuery();
 				qb.must(QueryBuilders.termQuery(criteria, search));
-				SearchResponse searchResponse = null;
+				SearchResponse searchResponse;
 				do {
-					searchResponse = client.prepareSearch(Constants.INDEX_ELASTIC).setTypes(Constants.TYPE_ELASTIC).setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(qb).setFrom(0)
-						.setSize(100).setExplain(true).get();
+					searchResponse = client.prepareSearch(Constants.INDEX_ELASTIC).setTypes(Constants.TYPE_ELASTIC).setSearchType(SearchType.QUERY_THEN_FETCH)
+						.setQuery(qb).setFrom(0).setSize(100).setExplain(true).get();
 					logger.info(
 						"Search for " + criteria + " with" + qb.must() + " : " + searchResponse.getHits().getHits().length + " / " + searchResponse.getHits()
 							.getMaxScore() + " / " + searchResponse.getHits().getTotalHits());
@@ -83,10 +83,10 @@ public class SearchService {
 			for (String search : searchs) {
 				int index = 0;
 				qb.must(QueryBuilders.termQuery(criteria, search));
-				SearchResponse searchResponse = null;
+				SearchResponse searchResponse;
 				do {
-					searchResponse = client.prepareSearch(Constants.INDEX_ELASTIC).setTypes(Constants.TYPE_ELASTIC).setSearchType(SearchType.QUERY_THEN_FETCH).setQuery(qb).setFrom(0)
-						.setSize(100).setExplain(true).get();
+					searchResponse = client.prepareSearch(Constants.INDEX_ELASTIC).setTypes(Constants.TYPE_ELASTIC).setSearchType(SearchType.QUERY_THEN_FETCH)
+						.setQuery(qb).setFrom(0).setSize(100).setExplain(true).get();
 					logger.info(
 						"Search for " + criteria + " with" + qb.must() + " : " + searchResponse.getHits().getHits().length + " / " + searchResponse.getHits()
 							.getMaxScore() + " / " + searchResponse.getHits().getTotalHits());
@@ -118,22 +118,17 @@ public class SearchService {
 		List<Map.Entry<String, Integer>> list = new LinkedList<>(unsortMap.entrySet());
 		// 2. Sort list with Collections.sort(), provide a custom Comparator
 		//    Try switch the o1 o2 position for a different order
-		Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
-			public int compare(Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2) {
-				return (o2.getValue()).compareTo(o1.getValue());
-			}
-		});
+		Collections.sort(list, (o1, o2) -> (o2.getValue()).compareTo(o1.getValue()));
 		// 3. Loop the sorted list and put it into a new insertion order Map LinkedHashMap
 		Map<String, Integer> sortedMap = new LinkedHashMap<>();
 		for (Map.Entry<String, Integer> entry : list) {
 			sortedMap.put(entry.getKey(), entry.getValue());
 		}
-			/*
-			//classic iterator example
-	        for (Iterator<Map.Entry<String, Integer>> it = list.iterator(); it.hasNext(); ) {
-	            Map.Entry<String, Integer> entry = it.next();
-	            sortedMap.put(entry.getKey(), entry.getValue());
-	        }*/
 		return sortedMap;
+	}
+
+	@PreDestroy
+	public void clean (){
+		client.close();
 	}
 }

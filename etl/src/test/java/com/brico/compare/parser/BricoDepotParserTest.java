@@ -24,9 +24,9 @@ public class BricoDepotParserTest {
 
 	@Test
 	public void testParserBricoDepot() throws IOException {
-		BricoDepotParser parser = new BricoDepotParser("http://www.bricodepot.fr", "C:/_tmp/perso", "www.bricodepot.fr/marseille");
+		BricoDepotParser parser = new BricoDepotParser( "C:/_tmp/perso", "www.bricodepot.fr/marseille","http://www.bricodepot.fr");
 		/*Product 1 C:\DEXXIS\samples\etl\src\test\resources\BricoDepot\product1_BD.html*/
-		Product product1 = parser.parseHTML(getClass().getResource("/BricoDepot/product1_BD.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/BricoDepot/product1_BD.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("BROYEUR DE VÉGÉTAUX PROFESSIONNEL 3000 W - SCHEPPACH", product1.getTitle());
 		Assert.assertEquals(
@@ -41,7 +41,7 @@ public class BricoDepotParserTest {
 			"Puissance Moteur : 3000 W. Bâti métallique. Diamètre de coupe : Branches jusqu'à 45 mm. Capacité : 150 kg/h max. Qualité de coupe : couteaux diamétralement opposés réversibles en acier trempé réaffûtables. Adapté aux grands jardins."));
 		Assert.assertEquals("Soldes", product1.getCategorieSeller());
 		/*Product 2*/
-		Product product2 = parser.parseHTML(getClass().getResource("/BricoDepot/product2_BD.html").getPath());
+		Product product2 = parser.parseHTML(getClass().getResource("/BricoDepot/product2_BD.html").getPath()).get();
 		LOGGER.log(Level.INFO, product2.toString());
 		Assert.assertEquals("100 CAVALIERS GRIS Ø 10 À 14 MM - LEGRAND", product2.getTitle());
 		Assert.assertEquals("Boîte de 100 cavaliers gris - Pour Fixation de câbles de 10 à 14 mm de diamètre. Clou en acier : Ø 1,8 mm - Long. 30 mm.",
@@ -55,7 +55,7 @@ public class BricoDepotParserTest {
 			.contains("Boîte de 100 cavaliers gris - Pour Fixation de câbles de 10 à 14 mm de diamètre. Clou en acier : Ø 1,8 mm - Long. 30 mm."));
 		Assert.assertEquals("Soldes", product2.getCategorieSeller());
 		/*Product 3*/
-		Product product3 = parser.parseHTML(getClass().getResource("/BricoDepot/product3_BD.html").getPath());
+		Product product3 = parser.parseHTML(getClass().getResource("/BricoDepot/product3_BD.html").getPath()).get();
 		LOGGER.log(Level.INFO, product3.toString());
 		Assert.assertEquals("4M READYCLIM 1/4 1/2 + MISE EN SERVICE", product3.getTitle());
 		Assert.assertEquals("4M READYCLIM 1/4 1/2 + MISE EN SERVICE / Magasin de Bricolage Brico Dépôt", product3.getShortDescription());
@@ -67,9 +67,9 @@ public class BricoDepotParserTest {
 		Assert.assertEquals("4M READYCLIM 1/4 1/2 + MISE EN SERVICE / Magasin de Bricolage Brico Dépôt", product3.getDescription());
 		Assert.assertEquals("Chauffage - Isolation - Climatisations réversibles - Kits de connexion", product3.getCategorieSeller());
 		/*Product 4*/
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/BricoDepot/product4_BD.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/BricoDepot/product4_BD.html").getPath()).isPresent());
 		/*Product 5*/
-		Product product5 = parser.parseHTML(getClass().getResource("/BricoDepot/product5.html").getPath());
+		Product product5 = parser.parseHTML(getClass().getResource("/BricoDepot/product5.html").getPath()).get();
 		LOGGER.log(Level.INFO, product5.toString());
 		Assert.assertEquals("VOLET ROULANT ALUMINIUM MOTORISÉ GRIS", product5.getTitle());
 		Assert.assertEquals(
@@ -85,7 +85,7 @@ public class BricoDepotParserTest {
 			product5.getDescription());
 		Assert.assertEquals("Soldes", product5.getCategorieSeller());
 		/*Product 6*/
-		Product product6 = parser.parseHTML(getClass().getResource("/BricoDepot/product6.html").getPath());
+		Product product6 = parser.parseHTML(getClass().getResource("/BricoDepot/product6.html").getPath()).get();
 		LOGGER.log(Level.INFO, product6.toString());
 		Assert.assertEquals("POLYSTYRÈNE EXTRUDÉ ÉP. 40 MM", product6.getTitle());
 		Assert.assertEquals(
@@ -135,7 +135,7 @@ public class BricoDepotParserTest {
 
 	@Test
 	public void testParser() throws IOException {
-		BricoDepotParser parser = new BricoDepotParser("http://www.bricodepot.fr", "C:/_tmp/perso", "www.bricodepot.fr/marseille");
+		BricoDepotParser parser = new BricoDepotParser( "C:/_tmp/perso", "www.bricodepot.fr/marseille/","http://www.bricodepot.fr");
 		List<Product> products = parser.parseDirectory();
 		assertNotNull(products);
 		for (Product product : products) {

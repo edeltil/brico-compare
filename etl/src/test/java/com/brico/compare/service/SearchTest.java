@@ -75,6 +75,7 @@ public class SearchTest {
 		} catch (IOException ex) {
 			ex.printStackTrace();
 		}
+		client.close();
 	}
 
 	@Test
@@ -110,7 +111,7 @@ public class SearchTest {
 			}
 			index += 100;
 		} while (index <= searchResponse.getHits().getTotalHits());
-
+		client.close();
 	}
 
 	@Test
@@ -130,5 +131,6 @@ public class SearchTest {
 					.getTotalHits());
 			index += 100;
 		} while (index <= searchResponse.getHits().getTotalHits());
+		client.close();
 	}
 }

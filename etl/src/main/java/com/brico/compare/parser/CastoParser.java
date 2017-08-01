@@ -1,92 +1,107 @@
 package com.brico.compare.parser;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
 import com.brico.compare.entity.Seller;
-import com.brico.compare.utils.Utils;
 
 /**
  * Created by edeltil on 23/01/2017.
  */
-public class CastoParser implements Parser {
+public class CastoParser extends AbstractParser {
 
-	private static Logger LOGGER = Logger.getLogger("CastoParser");
+	private static final String DESCRIPTION_ATTR = "description";
+	private static final String CONTENT_ATTR = "content";
+	private static final String PRICE_CLASS = "price";
+	private static final String CONTENT_CLASS = "productContent";
+	private static final String MARKER_CLASS = "slPrdMarker";
+	private static final String DETAILS_CLASS = "productDetailsRightColumn";
+	private static final String NEW_PRICE_CLASS = "newprice";
+	private static final String PRODUCT_CLASS = "featuredProduct";
+	private static final String CARD_PRICE_CLASS = "cardPrice";
 
-	private String host;
-	private String directory;
-	private String path;
+	private static final List ORDERS = new ArrayList<>();
+
+	static {
+		ORDERS.add(ExecutionMethod.SHORT_DESCRIPTION);
+		ORDERS.add(ExecutionMethod.URL);
+		ORDERS.add(ExecutionMethod.TITLE);
+		ORDERS.add(ExecutionMethod.IMAGE);
+		ORDERS.add(ExecutionMethod.DESCRIPTION);
+		ORDERS.add(ExecutionMethod.PRICE);
+		ORDERS.add(ExecutionMethod.OLD_PRICE);
+		ORDERS.add(ExecutionMethod.UNIT);
+		ORDERS.add(ExecutionMethod.CATEGORIES);
+		ORDERS.add(ExecutionMethod.RATE);
+	}
 
 	public CastoParser(String directory, String path, String host) {
-		this.host = host;
-		this.directory = directory;
-		this.path = path;
+		super(directory, path, host);
 	}
 
-	public List<Product> parseDirectory() throws IOException {
-		List<Product> products = new ArrayList<>();
-		Collection<File> files = FileUtils.listFiles(new File(directory + File.separator + path), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-		for (File file : files) {
-			LOGGER.log(Level.FINEST, file.getPath());
-			Product product = parseHTML(file.getPath());
-			if (product != null) {
-				products.add(product);
-			}
-		}
-		return products;
+	@Override
+	public List<ExecutionMethod> getOrders() {
+		return ORDERS;
 	}
 
-	public Product parseHTML(String path) throws IOException {
-		Document doc = Jsoup.parse(new File(path), Charset.forName("UTF-8").name());
+	@Override
+	public boolean isEmptyProduct(Element doc) {
 		Element element = doc.getElementsByClass("featuredProduct").first();
-		Product product = new Product();
-		product.setPath(path);
-		product.setSeller(Seller.Casto.name());
+		return !(element != null ||  (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) );
+	}
+
+	@Override
+	public boolean buildUnit(Element doc, Product product) {
 		product.setUnit(Constants.UNIT);
-		for (Element meta : doc.select("meta")) {
-			if (meta.attr("name").equals("description")) {
-				product.setShortDescription(meta.attr("content"));
-			}
-		}
-		if (StringUtils.isEmpty(product.getShortDescription())) {
-			for (Element meta : doc.select("META")) {
-				if (meta.attr("name").equals("description")) {
-					product.setShortDescription(meta.attr("content"));
+		if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
+			if (doc.getElementById(CARD_PRICE_CLASS) == null) {
+				if (doc.getElementsByClass(DETAILS_CLASS) != null && doc.getElementsByClass(DETAILS_CLASS).first() != null) {
+					Element rightColumn = doc.getElementsByClass(DETAILS_CLASS).first();
+					if (rightColumn.getElementsByClass(PRICE_CLASS) != null && rightColumn.getElementsByClass(PRICE_CLASS).first() != null) {
+						if (rightColumn.getElementsByClass(PRICE_CLASS).first().getElementsByClass("m2") != null && !rightColumn.getElementsByClass(PRICE_CLASS)
+							.first().getElementsByClass("m2").isEmpty()) {
+							product.setUnit("le m²");
+						}
+					} else {
+						if (rightColumn.getElementsByClass(NEW_PRICE_CLASS).first().getElementsByClass("m2") != null && !rightColumn
+							.getElementsByClass(NEW_PRICE_CLASS).first().getElementsByClass("m2").isEmpty()) {
+							product.setUnit("le m²");
+						}
+					}
 				}
 			}
 		}
-		Elements elements = doc.select("link");
-		for (Element link : elements) {
-			if (link.attr("rel").equals("canonical")) {
-				product.setUrl(link.attr("href"));
-			}
-		}
-		if (product.getUrl() == null || product.getUrl().contains("cat_id")) {
-			return null;
-		}
+		return true;
+	}
+
+	@Override
+	public boolean buildTitle(Element doc, Product product) {
+		Element element = doc.getElementsByClass(PRODUCT_CLASS).first();
 		if (element != null) {
 			Element ill = element.getElementsByClass("fIllustration").first();
 			product.setTitle(ill.select("a").attr("title"));
-			product.setImage(host + ill.select("a").select("img").attr("src"));
+		} else if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
+			Element productContent = doc.getElementsByClass(CONTENT_CLASS).first();
+			if (productContent.select("h1") == null || productContent.select("h1").first() == null) {
+				return false;
+			}
+			product.setTitle(productContent.select("h1").first().text());
+		}
+		return true;
+	}
 
+	@Override
+	public boolean buildDescription(Element doc, Product product) {
+		Element element = doc.getElementsByClass(PRODUCT_CLASS).first();
+		if (element != null) {
 			Element fDescription = element.getElementsByClass("fDescription").first();
 			String description = "";
 			for (Element desc : fDescription.select("ul")) {
@@ -97,24 +112,7 @@ public class CastoParser implements Parser {
 				}
 			}
 			product.setDescription(description);
-			product.setPrice(new Double(
-				element.getElementsByClass("price").first().text().substring(0, element.getElementsByClass("price").first().text().length() - 2)
-					.replaceAll(",", ".")));
-		} else if (doc.getElementsByClass("productContent") != null && doc.getElementsByClass("productContent").first() != null) {
-			Element productContent = doc.getElementsByClass("productContent").first();
-			if (productContent.select("h1") == null || productContent.select("h1").first() == null) {
-				return null;
-			}
-			product.setTitle(productContent.select("h1").first().text());
-			Element imgContent = doc.getElementsByClass("productImage").first();
-			//			String productId = imgContent.attr("productId");
-			if (imgContent.getElementsByClass("slPrdMarker") != null && imgContent.getElementsByClass("slPrdMarker").first() != null
-				&& imgContent.getElementsByClass("slPrdMarker").first().attr("src") != null) {
-				product.setImage(host + imgContent.getElementsByClass("slPrdMarker").first().attr("src"));
-			} else {
-				product.setImage(host + imgContent.getElementById("lrgImg").attr("src"));
-			}
-
+		} else if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
 			String description = "";
 			Element descTech = doc.getElementById("tabs_pd_pagetechnicTab");
 			if (descTech != null) {
@@ -127,43 +125,100 @@ public class CastoParser implements Parser {
 				}
 			}
 			product.setDescription(description);
-			for (Element meta : doc.select("meta")) {
-				if (meta.attr("name").equals("description")) {
-					product.setShortDescription(meta.attr("content"));
-				}
-			}
-			if (StringUtils.isEmpty(product.getShortDescription())) {
-				for (Element meta : doc.select("META")) {
-					if (meta.attr("name").equals("description")) {
-						product.setShortDescription(meta.attr("content"));
-					}
-				}
-			}
-			if (doc.getElementById("cardPrice") != null) {
-				product.setPrice(new Double(doc.getElementById("cardPrice").text()));
-			} else {
-				if (doc.getElementsByClass("productDetailsRightColumn") != null && doc.getElementsByClass("productDetailsRightColumn").first() != null) {
-					Element rightColumn = doc.getElementsByClass("productDetailsRightColumn").first();
-					if (rightColumn.getElementsByClass("price") != null && rightColumn.getElementsByClass("price").first() != null) {
-						product.setPrice(getPrice(rightColumn.getElementsByClass("price").first().text()));
-						if (rightColumn.getElementsByClass("price").first().getElementsByClass("m2") != null && !rightColumn.getElementsByClass("price").first()
-							.getElementsByClass("m2").isEmpty()) {
-							product.setUnit("le m²");
-						}
-					} else {
-						product.setOldPrice(getPrice(rightColumn.getElementsByClass("oldprice").first().text()));
-						product.setPrice(getPrice(rightColumn.getElementsByClass("newprice").first().text()));
-						if (rightColumn.getElementsByClass("newprice").first().getElementsByClass("m2") != null && !rightColumn.getElementsByClass("newprice")
-							.first().getElementsByClass("m2").isEmpty()) {
-							product.setUnit("le m²");
-						}
-					}
-				}
-			}
-		} else {
-			LOGGER.log(Level.FINE, "Error : " + path);
-			return null;
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildShortDescription(Element doc, Product product) {
+		for (Element meta : doc.select("meta")) {
+			if (DESCRIPTION_ATTR.equals(meta.attr("name"))) {
+				product.setShortDescription(meta.attr(CONTENT_ATTR));
+			}
+		}
+		if (StringUtils.isEmpty(product.getShortDescription())) {
+			for (Element meta : doc.select("META")) {
+				if (DESCRIPTION_ATTR.equals(meta.attr("name"))) {
+					product.setShortDescription(meta.attr(CONTENT_ATTR));
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildUrl(Element doc, Product product) {
+		Elements elements = doc.select("link");
+		for (Element link : elements) {
+			if ("canonical".equals(link.attr("rel"))) {
+				product.setUrl(link.attr("href"));
+			}
+		}
+		if (product.getUrl() == null || product.getUrl().contains("cat_id")) {
+			return false;
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildOldPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
+			if (doc.getElementById(CARD_PRICE_CLASS) == null) {
+				if (doc.getElementsByClass(DETAILS_CLASS) != null && doc.getElementsByClass(DETAILS_CLASS).first() != null) {
+					Element rightColumn = doc.getElementsByClass(DETAILS_CLASS).first();
+					if (rightColumn.getElementsByClass(PRICE_CLASS) == null || rightColumn.getElementsByClass(PRICE_CLASS).first() == null) {
+						product.setOldPrice(getPrice(rightColumn.getElementsByClass("oldprice").first().text()));
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildPrice(Element doc, Product product) {
+		Element element = doc.getElementsByClass(PRODUCT_CLASS).first();
+		if (element != null) {
+			product.setPrice(new Double(
+				element.getElementsByClass(PRICE_CLASS).first().text().substring(0, element.getElementsByClass(PRICE_CLASS).first().text().length() - 2)
+					.replaceAll(",", ".")));
+		} else if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
+			if (doc.getElementById(CARD_PRICE_CLASS) != null) {
+				product.setPrice(new Double(doc.getElementById(CARD_PRICE_CLASS).text()));
+			} else {
+				if (doc.getElementsByClass(DETAILS_CLASS) != null && doc.getElementsByClass(DETAILS_CLASS).first() != null) {
+					Element rightColumn = doc.getElementsByClass(DETAILS_CLASS).first();
+					if (rightColumn.getElementsByClass(PRICE_CLASS) != null && rightColumn.getElementsByClass(PRICE_CLASS).first() != null) {
+						product.setPrice(getPrice(rightColumn.getElementsByClass(PRICE_CLASS).first().text()));
+					} else {
+						product.setPrice(getPrice(rightColumn.getElementsByClass(NEW_PRICE_CLASS).first().text()));
+					}
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildImage(Element doc, Product product) {
+		Element element = doc.getElementsByClass(PRODUCT_CLASS).first();
+		if (element != null) {
+			Element ill = element.getElementsByClass("fIllustration").first();
+			product.setImage(host + ill.select("a").select("img").attr("src"));
+		} else if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null) {
+			Element imgContent = doc.getElementsByClass("productImage").first();
+			if (imgContent.getElementsByClass(MARKER_CLASS) != null && imgContent.getElementsByClass(MARKER_CLASS).first() != null
+				&& imgContent.getElementsByClass(MARKER_CLASS).first().attr("src") != null) {
+				product.setImage(host + imgContent.getElementsByClass(MARKER_CLASS).first().attr("src"));
+			} else {
+				product.setImage(host + imgContent.getElementById("lrgImg").attr("src"));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildCategories(Element doc, Product product) {
 		if (doc.getElementsByClass("breadcrumbs").first() != null) {
 			String categories = "";
 			String splitCategories = " - ";
@@ -175,7 +230,7 @@ public class CastoParser implements Parser {
 					if (index == 1) {
 						Element nav = doc.getElementById("navPane");
 						Elements menus = nav
-							.getElementsContainingOwnText(a.text().substring(0, a.text().contains(" ") ? a.text().indexOf(" ") : a.text().length()));
+							.getElementsContainingOwnText(a.text().substring(0, a.text().contains(" ") ? a.text().indexOf(' ') : a.text().length()));
 						//menuContainer
 						Element navCategorie = menus.first();
 						if (navCategorie != null) {
@@ -195,13 +250,23 @@ public class CastoParser implements Parser {
 			}
 			product.setCategorieSeller(categories);
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildRate(Element doc, Product product) {
 		if (doc.getElementById("BVRRRatingOverall_") != null) {
 			Element rating = doc.getElementById("BVRRRatingOverall_").getElementsByClass("BVImgOrSprite").first();
 			String rate = rating.attr("title");
-			product.setRate(Integer.parseInt(rate.substring(0, rate.indexOf(","))));
+			product.setRate(Integer.parseInt(rate.substring(0, rate.indexOf(','))));
 		}
-		Utils.checkProduct(product);
-		return product;
+		return true;
+	}
+
+	@Override
+	public boolean buildSeller(Product product) {
+		product.setSeller(Seller.CASTO.name());
+		return true;
 	}
 
 	private Double getPrice(String text) {

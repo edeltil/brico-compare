@@ -24,7 +24,7 @@ public class BMParserTest {
 	public void testParserBM() throws IOException {
 		BMParser parser = new BMParser("C:/_tmp/perso", "www.bricomarche.com/nos-produits");
 		/*Product 1 */
-		Product product1 = parser.parseHTML(getClass().getResource("/BM/product1_BM.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/BM/product1_BM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("Lot de 4 pieds reglables pour receveur de douche", product1.getTitle());
 		Assert.assertEquals("Pieds réglables pour receveur de douche (lot de 4)", product1.getShortDescription());
@@ -39,10 +39,10 @@ public class BMParserTest {
 		Assert.assertTrue(product1.getDescription().contains("Résistant : supporte 450 Kg par pied"));
 		Assert.assertTrue(product1.getDescription().contains("Grande plage de réglage : la rallonge permet d'atteindre u"));
 		Assert.assertEquals("Bricolage - Plomberie - Evacuation de la baignoire", product1.getCategorieSeller());
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/BM/product2_BM.html").getPath()));
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/BM/product3_BM.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/BM/product2_BM.html").getPath()).isPresent());
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/BM/product3_BM.html").getPath()).isPresent());
 		/*Product 4*/
-		Product product4 = parser.parseHTML(getClass().getResource("/BM/product4_BM.html").getPath());
+		Product product4 = parser.parseHTML(getClass().getResource("/BM/product4_BM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product4.toString());
 		Assert.assertEquals("Baignoire Balnéo Cocos 130x130cm", product4.getTitle());
 		Assert.assertEquals("La baignoire Balnéo Cocos est équipée d'hydrojets ainsi que d'appuis-têtes de barres de soutien ainsi que de la chromothérapie.",
@@ -60,7 +60,7 @@ public class BMParserTest {
 		Assert.assertTrue(product4.getDescription().contains("4 buses orentables eau + air"));
 		Assert.assertEquals("Aménagement intérieur - Salle de bains et WC - Baignoire", product4.getCategorieSeller());
 		/*Product 5*/
-		Product product5 = parser.parseHTML(getClass().getResource("/BM/product5_BM.html").getPath());
+		Product product5 = parser.parseHTML(getClass().getResource("/BM/product5_BM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product5.toString());
 		Assert.assertEquals("Suspension diam. 25 cm GLOBO Galactica", product5.getTitle());
 		Assert.assertEquals(
@@ -80,7 +80,7 @@ public class BMParserTest {
 		Assert.assertEquals("Décoration - Luminaire - Luminaire intérieur - Lustre et suspension", product5.getCategorieSeller());
 
 		/*Product 6*/
-		Product product6 = parser.parseHTML(getClass().getResource("/BM/product6.html").getPath());
+		Product product6 = parser.parseHTML(getClass().getResource("/BM/product6.html").getPath()).get();
 		LOGGER.log(Level.INFO, product6.toString());
 		Assert.assertEquals("Plaquette de parement MODULO pour extérieur/intérieur BELIZE GREY", product6.getTitle());
 		Assert.assertEquals(

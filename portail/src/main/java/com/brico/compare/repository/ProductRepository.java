@@ -1,5 +1,7 @@
 package com.brico.compare.repository;
 
+import javax.annotation.PreDestroy;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
@@ -34,6 +36,11 @@ public class ProductRepository {
 		GetResponse getResponse = client.prepareGet(Constants.INDEX_ELASTIC, Constants.TYPE_ELASTIC, id).get();
 		logger.info("GET : " + getResponse.getSourceAsString() + " - " + id);
 		return Optional.ofNullable(new Gson().fromJson(getResponse.getSourceAsString(), Product.class));
+	}
+
+	@PreDestroy
+	public void clean (){
+		client.close();
 	}
 
 }

@@ -11,7 +11,10 @@ import com.brico.compare.entity.Product;
  * Created by edeltil on 23/03/2017.
  */
 public class Utils {
-	private static Logger LOGGER = Logger.getLogger("Utils");
+	private Utils() {
+	}
+
+	private static final Logger LOGGER = Logger.getLogger("Utils");
 
 	public static void checkProduct(Product product) {
 		/**/

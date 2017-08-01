@@ -1,130 +1,188 @@
 package com.brico.compare.parser;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
 import com.brico.compare.entity.Seller;
-import com.brico.compare.utils.Utils;
 
 /**
  * Created by edeltil on 23/01/2017.
  */
-public class BricoDepotParser implements Parser {
+public class BricoDepotParser extends AbstractParser {
 
-	private static Logger LOGGER = Logger.getLogger("BricoDepotParser");
+	private static final String PROD_TITLE_CLASS = "prodTitle";
+	private static final String PROD_INFO_CLASS = "prodInfo";
+	private static final String RIGHT_COL_CLASS = "rightCol";
+	private static final String OLD_PRICE_CLASS = "oldPrice";
+	private static final String CURENT_PRICE_CLASS = "curentPrice";
+	private static final String BREADCRUMBS_CLASS = "breadcrumbs";
+	private static final String UNITS_CLASS = "units";
+	private static final String DESCRIPTION_CLASS = "prodDescr";
 
-	private String host;
-	private String directory;
-	private String path;
+	private static final List ORDERS = new ArrayList<>();
+
+	static {
+		ORDERS.add(ExecutionMethod.RATE);
+		ORDERS.add(ExecutionMethod.URL);
+		ORDERS.add(ExecutionMethod.SHORT_DESCRIPTION);
+		ORDERS.add(ExecutionMethod.IMAGE);
+		ORDERS.add(ExecutionMethod.TITLE);
+		ORDERS.add(ExecutionMethod.DESCRIPTION);
+		ORDERS.add(ExecutionMethod.PRICE);
+		ORDERS.add(ExecutionMethod.OLD_PRICE);
+		ORDERS.add(ExecutionMethod.UNIT);
+		ORDERS.add(ExecutionMethod.CATEGORIES);
+	}
 
 	public BricoDepotParser(String directory, String path, String host) {
-		this.host = host;
-		this.directory = directory;
-		this.path = path;
+		super(directory, path, host);
 	}
 
-	public List<Product> parseDirectory() throws IOException {
-		List<Product> products = new ArrayList<>();
-		Collection<File> files = FileUtils.listFiles(new File(directory + File.separator + path), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-		for (File file : files) {
-			LOGGER.log(Level.FINEST, file.getPath());
-			Product product = parseHTML(file.getPath());
-			if (product != null) {
-				products.add(product);
+	@Override
+	public List<ExecutionMethod> getOrders() {
+		return ORDERS;
+	}
+
+	@Override
+	public boolean isEmptyProduct(Element doc) {
+		Element fDescription = doc.getElementsByClass(DESCRIPTION_CLASS).first();
+		if (fDescription == null || fDescription.getElementsByClass(PROD_TITLE_CLASS) == null
+			|| fDescription.getElementsByClass(PROD_TITLE_CLASS).first() == null) {
+			return true;
+		}
+		return false;
+	}
+
+	@Override
+	public boolean buildUnit(Element doc, Product product) {
+		if (doc.getElementsByClass(RIGHT_COL_CLASS) != null && doc.getElementsByClass(RIGHT_COL_CLASS).first() != null) {
+			Element rightColumn = doc.getElementsByClass(RIGHT_COL_CLASS).first();
+			product.setUnit("la pièce".equals(getUnit(rightColumn.getElementsByClass(CURENT_PRICE_CLASS).first())) ?
+				Constants.UNIT :
+				getUnit(rightColumn.getElementsByClass(CURENT_PRICE_CLASS).first()));
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildTitle(Element doc, Product product) {
+		Element fDescription = doc.getElementsByClass(DESCRIPTION_CLASS).first();
+		if (fDescription == null || fDescription.getElementsByClass(PROD_TITLE_CLASS) == null
+			|| fDescription.getElementsByClass(PROD_TITLE_CLASS).first() == null) {
+			return false;
+		}
+		product.setTitle(fDescription.getElementsByClass(PROD_TITLE_CLASS).first().text());
+		return true;
+	}
+
+	@Override
+	public boolean buildDescription(Element doc, Product product) {
+		Element fDescription = doc.getElementsByClass(DESCRIPTION_CLASS).first();
+		if (fDescription == null || fDescription.getElementsByClass(PROD_TITLE_CLASS) == null
+			|| fDescription.getElementsByClass(PROD_TITLE_CLASS).first() == null) {
+			return false;
+		}
+		if (fDescription.getElementsByClass(PROD_INFO_CLASS) != null && fDescription.getElementsByClass(PROD_INFO_CLASS).first() != null && StringUtils
+			.isNotEmpty(fDescription.getElementsByClass(PROD_INFO_CLASS).first().text())) {
+			product.setDescription(fDescription.getElementsByClass(PROD_INFO_CLASS).first().text());
+		} else {
+			product.setDescription(product.getShortDescription());
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildShortDescription(Element doc, Product product) {
+		Elements metas = doc.select("meta");
+		for (Element link : metas) {
+			if ("og:description".equals(link.attr("property"))) {
+				product.setShortDescription(link.attr("content"));
 			}
 		}
-		return products;
+		return true;
 	}
 
-	public Product parseHTML(String path) throws IOException {
-		Document doc;
-		try {
-			doc = Jsoup.parse(new File(path), Charset.forName("UTF-8").name());
-		} catch (IllegalArgumentException exc) {
-			return null;
-		}
-		Product product = new Product();
-		product.setSeller(Seller.BD.name());
-		product.setPath(path);
-		//pas d'avis
-		product.setRate(0);
+	@Override
+	public boolean buildUrl(Element doc, Product product) {
 		Elements elements = doc.select("link");
 		for (Element link : elements) {
-			if (link.attr("rel").equals("canonical")) {
+			if ("canonical".equals(link.attr("rel"))) {
 				product.setUrl(link.attr("href"));
 			}
 		}
 		if (product.getUrl() == null) {
-			return null;
+			return false;
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildOldPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(RIGHT_COL_CLASS) != null && doc.getElementsByClass(RIGHT_COL_CLASS).first() != null) {
+			Element rightColumn = doc.getElementsByClass(RIGHT_COL_CLASS).first();
+			if (rightColumn.getElementsByClass(OLD_PRICE_CLASS) != null && rightColumn.getElementsByClass(OLD_PRICE_CLASS).first() != null) {
+				product.setOldPrice(getOldPrice(rightColumn.getElementsByClass(OLD_PRICE_CLASS).first().select("span").first().text()));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(RIGHT_COL_CLASS) != null && doc.getElementsByClass(RIGHT_COL_CLASS).first() != null) {
+			Element rightColumn = doc.getElementsByClass(RIGHT_COL_CLASS).first();
+			product.setPrice(getPrice(rightColumn.getElementsByClass(CURENT_PRICE_CLASS).first()));
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildImage(Element doc, Product product) {
 		Elements metas = doc.select("meta");
 		for (Element link : metas) {
-			if (link.attr("property").equals("og:description")) {
-				product.setShortDescription(link.attr("content"));
-			} else if (link.attr("property").equals("og:image")) {
+			if ("og:image".equals(link.attr("property"))) {
 				product.setImage(host + link.attr("content"));
 			}
 		}
+		return true;
+	}
 
-		Element fDescription = doc.getElementsByClass("prodDescr").first();
-		if (fDescription == null || fDescription.getElementsByClass("prodTitle") == null || fDescription.getElementsByClass("prodTitle").first() == null) {
-			return null;
-		}
-		product.setTitle(fDescription.getElementsByClass("prodTitle").first().text());
-		if (fDescription.getElementsByClass("prodInfo") != null && fDescription.getElementsByClass("prodInfo").first() != null && StringUtils
-			.isNotEmpty(fDescription.getElementsByClass("prodInfo").first().text())) {
-			product.setDescription(fDescription.getElementsByClass("prodInfo").first().text());
-		} else {
-			product.setDescription(product.getShortDescription());
-		}
-
-		if (doc.getElementsByClass("rightCol") != null && doc.getElementsByClass("rightCol").first() != null) {
-			Element rightColumn = doc.getElementsByClass("rightCol").first();
-			product.setPrice(getPrice(rightColumn.getElementsByClass("curentPrice").first()));
-			if (rightColumn.getElementsByClass("oldPrice") != null && rightColumn.getElementsByClass("oldPrice").first() != null) {
-				product.setOldPrice(getOldPrice(rightColumn.getElementsByClass("oldPrice").first().select("span").first().text()));
-			}
-			product.setUnit("la pièce".equals(getUnit(rightColumn.getElementsByClass("curentPrice").first())) ?
-				Constants.UNIT :
-				getUnit(rightColumn.getElementsByClass("curentPrice").first()));
-		}
-		if (doc.getElementsByClass("breadcrumbs").first() != null) {
-			String categories = "";
+	@Override
+	public boolean buildCategories(Element doc, Product product) {
+		if (doc.getElementsByClass(BREADCRUMBS_CLASS).first() != null) {
+			String categories;
+			StringBuilder bld = new StringBuilder();
 			String splitCategories = " - ";
-			Element breadcrumbs = doc.getElementsByClass("breadcrumbs").first();
+			Element breadcrumbs = doc.getElementsByClass(BREADCRUMBS_CLASS).first();
 			for (int index = 1; index < breadcrumbs.text().split(">").length - 1; index++) {
-				categories += breadcrumbs.text().split(">")[index].replace(String.valueOf((char) 160), " ").trim() + splitCategories;
+				bld.append(breadcrumbs.text().split(">")[index].replace(String.valueOf((char) 160), " ").trim()).append(splitCategories);
 			}
+			categories = bld.toString();
 			if (categories.endsWith(splitCategories)) {
 				categories = categories.substring(0, categories.length() - splitCategories.length());
 			}
 			product.setCategorieSeller(categories);
 		}
-		Utils.checkProduct(product);
-		return product;
+		return true;
+	}
+
+	@Override
+	public boolean buildSeller(Product product) {
+		product.setSeller(Seller.BD.name());
+		return true;
 	}
 
 	protected String getUnit(Element priceElement) {
-		String unit = priceElement.getElementsByClass("units").first().text()
-			.substring("TTC / ".length(), priceElement.getElementsByClass("units").first().text().length() - 1);
+		String unit = priceElement.getElementsByClass(UNITS_CLASS).first().text()
+			.substring("TTC / ".length(), priceElement.getElementsByClass(UNITS_CLASS).first().text().length() - 1);
 		if (unit.contains("Soit")) {
 			unit = unit.substring(0, unit.indexOf("Soit") - 1);
 		}

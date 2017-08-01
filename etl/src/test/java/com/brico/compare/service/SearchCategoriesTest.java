@@ -137,6 +137,7 @@ public class SearchCategoriesTest {
 			GetResponse getResponse = client.prepareGet(Constants.INDEX_ELASTIC, Constants.TYPE_ELASTIC, hit).get();
 			logger.info("GET : " + getResponse.getSourceAsString() + " - " + sortedMap.get(hit));
 		}
+		client.close();
 
 	}
 

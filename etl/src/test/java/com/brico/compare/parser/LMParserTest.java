@@ -25,7 +25,7 @@ public class LMParserTest {
 	public void testParserLM() throws IOException {
 		LMParser parser = new LMParser("C:/_tmp/perso", "www.leroymerlin.fr/v3/p/produits");
 		/*Product 1*/
-		Product product1 = parser.parseHTML(getClass().getResource("/LM/product1_LM.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/LM/product1_LM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("Accessoire pour thermostat sans fil DIO Ed se 03", product1.getTitle());
 		Assert.assertEquals("Type de chauffage:Radiateur électrique, Type de thermostat:Connecté et intelligent, Filaire ou sans fil:Sans fil",
@@ -47,7 +47,7 @@ public class LMParserTest {
 			"Chauffage et plomberie - Radiateur, sèche-serviettes, chaudière, régulation et climatiseur - Thermostat et programmateur de chauffage",
 			product1.getCategorieSeller());
 		/*Product 2*/
-		Product product2 = parser.parseHTML(getClass().getResource("/LM/product2_LM.html").getPath());
+		Product product2 = parser.parseHTML(getClass().getResource("/LM/product2_LM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product2.toString());
 		Assert.assertEquals("5 IntelliTAG pour Myfox Home Alarm MYFOX blanc", product2.getTitle());
 		Assert.assertEquals("Garantie (en année):2, Alimentation principale:Piles, Piles fournies:Oui", product2.getShortDescription());
@@ -63,12 +63,12 @@ public class LMParserTest {
 		Assert.assertEquals(
 			"Electricité et domotique - Alarme maison, caméra de surveillance et détecteur de fumée - Alarme maison - Accessoires pour alarme de maison",
 			product2.getCategorieSeller());
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/LM/product3_LM.html").getPath()));
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/LM/product4_LM.html").getPath()));
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/LM/product5_LM.html").getPath()));
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/LM/product6_LM.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/LM/product3_LM.html").getPath()).isPresent());
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/LM/product4_LM.html").getPath()).isPresent());
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/LM/product5_LM.html").getPath()).isPresent());
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/LM/product6_LM.html").getPath()).isPresent());
 		/*Product 7*/
-		Product product7 = parser.parseHTML(getClass().getResource("/LM/product7_LM.html").getPath());
+		Product product7 = parser.parseHTML(getClass().getResource("/LM/product7_LM.html").getPath()).get();
 		LOGGER.log(Level.INFO, product7.toString());
 		Assert.assertEquals("Raclette à lisser caoutchouc SEMIN", product7.getTitle());
 		Assert.assertTrue(StringUtils.isEmpty(product7.getShortDescription()));
@@ -81,7 +81,7 @@ public class LMParserTest {
 		Assert.assertEquals("Peinture et droguerie - Sous-couche et enduit - Accessoires enduit", product7.getCategorieSeller());
 
 		/*Product 8*/
-		Product product8 = parser.parseHTML(getClass().getResource("/LM/product8.html").getPath());
+		Product product8 = parser.parseHTML(getClass().getResource("/LM/product8.html").getPath()).get();
 		LOGGER.log(Level.INFO, product8.toString());
 		Assert.assertEquals("Parquet massif chêne brut brut L ARTENS Solidclic", product8.getTitle());
 		Assert.assertTrue(product8.getShortDescription().contains("Passage:Important (couple avec un enfant), Pose:Flottante clic+, Qualité du bois:Bohème"));
@@ -99,7 +99,7 @@ public class LMParserTest {
 
 	@Test
 	public void testParser() throws IOException {
-		LMParser parser = new LMParser("C:/_tmp/perso", "www.leroymerlin.fr/v3/p/produits");
+		LMParser parser = new LMParser("C:/_tmp/perso", "www.leroymerlin.fr/v3/p/produits/");
 		List<Product> products = parser.parseDirectory();
 		assertNotNull(products);
 		for (Product product : products) {

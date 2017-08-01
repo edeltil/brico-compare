@@ -1,12 +1,11 @@
 package com.brico.compare.entity;
 
 import java.util.Date;
-import java.util.UUID;
 
 /**
  * Created by edeltil on 23/01/2017.
  */
-public class Product extends SimpleProduct{
+public class Product extends SimpleProduct {
 	private String description;
 	private String url;
 	private String unit;
@@ -18,7 +17,6 @@ public class Product extends SimpleProduct{
 		super();
 		date = new Date();
 	}
-
 
 	public String getDescription() {
 		return description;
@@ -70,7 +68,7 @@ public class Product extends SimpleProduct{
 
 	@Override
 	public String toString() {
-		return super.toString() + "\nProduct{" + "description='" + description + '\'' + ", url='" + url + '\'' + ", unit='" + unit + '\'' + ", categorieSeller='" + categorieSeller
-			+ '\'' + ", date=" + date + ", path='" + path + '\'' + '}';
+		return super.toString() + "\nProduct{" + "description='" + description + '\'' + ", url='" + url + '\'' + ", unit='" + unit + '\''
+			+ ", categorieSeller='" + categorieSeller + '\'' + ", date=" + date + ", path='" + path + '\'' + '}';
 	}
 }

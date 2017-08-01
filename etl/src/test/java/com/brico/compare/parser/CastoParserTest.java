@@ -22,9 +22,9 @@ public class CastoParserTest {
 
 	@Test
 	public void testParserCasto() throws IOException {
-		CastoParser parser = new CastoParser("http://www.castorama.fr", "C:/_tmp/perso", "www.castorama.fr/store");
+		CastoParser parser = new CastoParser("C:/_tmp/perso", "www.castorama.fr/store","http://www.castorama.fr");
 		/*Product 1*/
-		Product product1 = parser.parseHTML(getClass().getResource("/Casto/product1_Casto.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/Casto/product1_Casto.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("Abri de jardin en bois Ylistaro", product1.getTitle());
 		Assert.assertEquals("Abri de jardin en bois Ylistaro", product1.getShortDescription());
@@ -40,7 +40,7 @@ public class CastoParserTest {
 		Assert.assertEquals("Jardin et Terrasse - Abri, serre, carport, garage, rangement - Abri de jardin", product1.getCategorieSeller());
 
 		/*Product 2*/
-		Product product2 = parser.parseHTML(getClass().getResource("/Casto/product2_Casto.html").getPath());
+		Product product2 = parser.parseHTML(getClass().getResource("/Casto/product2_Casto.html").getPath()).get();
 		LOGGER.log(Level.INFO, product2.toString());
 		Assert.assertEquals("Bain de soleil Papaya eucalyptus", product2.getTitle());
 		Assert.assertEquals("Bain de soleil Papaya eucalyptus", product2.getShortDescription());
@@ -56,7 +56,7 @@ public class CastoParserTest {
 		Assert.assertEquals("Jardin et Terrasse - Mobilier de jardin - Bain de soleil", product2.getCategorieSeller());
 
 		/*Product 3*/
-		Product product3 = parser.parseHTML(getClass().getResource("/Casto/product3.html").getPath());
+		Product product3 = parser.parseHTML(getClass().getResource("/Casto/product3.html").getPath()).get();
 		LOGGER.log(Level.INFO, product3.toString());
 		Assert.assertEquals("Fauteuil de jardin en métal Colombia", product3.getTitle());
 		Assert.assertEquals("Fauteuil de jardin en métal Colombia", product3.getShortDescription());
@@ -73,7 +73,7 @@ public class CastoParserTest {
 		Assert.assertEquals("Jardin et Terrasse - Mobilier de jardin - Chaise et fauteuil de jardin", product3.getCategorieSeller());
 
 		/*Product 5*/
-		Product product5 = parser.parseHTML(getClass().getResource("/Casto/product5.html").getPath());
+		Product product5 = parser.parseHTML(getClass().getResource("/Casto/product5.html").getPath()).get();
 		LOGGER.log(Level.INFO, product5.toString());
 		Assert.assertEquals("Bétonnière électrique B165", product5.getTitle());
 		Assert.assertEquals("Bétonnière électrique B165", product5.getShortDescription());
@@ -89,7 +89,7 @@ public class CastoParserTest {
 		Assert.assertEquals("Jardin et Terrasse - Outillage - Matériel et outillage de bâtiment - Bétonnière", product5.getCategorieSeller());
 
 		/*Product 6*/
-		Product product6 = parser.parseHTML(getClass().getResource("/Casto/product6.html").getPath());
+		Product product6 = parser.parseHTML(getClass().getResource("/Casto/product6.html").getPath()).get();
 		LOGGER.log(Level.INFO, product6.toString());
 		Assert.assertEquals("Cloison à lames orientables Yotta beige", product6.getTitle());
 		Assert.assertEquals("Découvrez les offres et promotions de cloisons amovibles sur www.castorama.fr !  ", product6.getShortDescription());
@@ -106,7 +106,7 @@ public class CastoParserTest {
 		Assert.assertEquals("Jardin et Terrasse - Porte intérieure, escalier et cloison amovible", product6.getCategorieSeller());
 
 		/*Product 7*/
-		Product product7 = parser.parseHTML(getClass().getResource("/Casto/product7.html").getPath());
+		Product product7 = parser.parseHTML(getClass().getResource("/Casto/product7.html").getPath()).get();
 		LOGGER.log(Level.INFO, product7.toString());
 		Assert.assertEquals("Lame de terrasse composite Dixi marron L.220 x l.14,5 cm", product7.getTitle());
 		Assert.assertEquals("Lame de terrasse composite Dixi marron L.220 x l.14,5 cm", product7.getShortDescription());
@@ -123,7 +123,7 @@ public class CastoParserTest {
 
 	@Test
 	public void testParser() throws IOException {
-		CastoParser parser = new CastoParser("http://www.castorama.fr", "C:/_tmp/perso", "www.castorama.fr/store");
+		CastoParser parser = new CastoParser( "C:/_tmp/perso", "www.castorama.fr/store","http://www.castorama.fr");
 		List<Product> products = parser.parseDirectory();
 		assertNotNull(products);
 		for (Product product : products) {
@@ -131,7 +131,7 @@ public class CastoParserTest {
 			assertNotNull("Error on path : " + product.getPath(), product.getPath());
 			assertNotNull("Error on short description : " + product.getPath(), product.getShortDescription());
 			assertNotNull("Error on seller : " + product.getPath(), product.getSeller());
-			assertNotNull("Error on seller : " + product.getPath(), product.getSeller().equals(Seller.Casto.name()));
+			assertNotNull("Error on seller : " + product.getPath(), product.getSeller().equals(Seller.CASTO.name()));
 			assertNotNull("Error on categorie seller : " + product.getPath(), product.getCategorieSeller());
 			assertNotNull("Error on description : " + product.getPath(), product.getDescription());
 			assertNotNull("Error on old price : " + product.getPath(), product.getDate());

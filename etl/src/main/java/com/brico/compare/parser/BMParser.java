@@ -1,140 +1,187 @@
 package com.brico.compare.parser;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
 import com.brico.compare.entity.Seller;
-import com.brico.compare.utils.Utils;
 
 /**
  * Created by edeltil on 24/01/2017.
  */
-public class BMParser implements Parser {
+public class BMParser extends Parser {
 
-	private String directory;
+	private static final String OLD_PRICE_CLASS = "old-price";
+	private static final String DESCRIPTION_CLASS = "magento-product-decscription";
+	private static final String CONTENT_CLASS = "product-content";
+	private static final String MESSAGE_CLASS = "note-msg";
+	private static final String NEW_PRICE_CLASS = "new-price";
+	private static final String SMALL_CLASS = "small";
 
-	private String path;
+	private static final List ORDERS = new ArrayList<>();
 
-	private static Logger LOGGER = Logger.getLogger("BMParser");
+	static {
+		ORDERS.add(ExecutionMethod.DESCRIPTION);
+		ORDERS.add(ExecutionMethod.SHORT_DESCRIPTION);
+		ORDERS.add(ExecutionMethod.URL);
+		ORDERS.add(ExecutionMethod.TITLE);
+		ORDERS.add(ExecutionMethod.OLD_PRICE);
+		ORDERS.add(ExecutionMethod.PRICE);
+		ORDERS.add(ExecutionMethod.UNIT);
+		ORDERS.add(ExecutionMethod.IMAGE);
+		ORDERS.add(ExecutionMethod.CATEGORIES);
+		ORDERS.add(ExecutionMethod.RATE);
+	}
 
 	public BMParser(String directory, String path) {
-		this.directory = directory;
-		this.path = path;
+		super(directory, path);
 	}
 
-	public List<Product> parseDirectory() throws IOException {
-		List<Product> products = new ArrayList<>();
-		Collection<File> files = FileUtils.listFiles(new File(directory + File.separator + path), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-		for (File file : files) {
-			LOGGER.log(Level.FINEST, file.getPath());
-			Product product = parseHTML(file.getPath());
-			if (product != null) {
-				products.add(product);
-			}
-		}
-		return products;
+	@Override
+	public List<ExecutionMethod> getOrders() {
+		return ORDERS;
 	}
 
-	public Product parseHTML(String path) throws IOException {
-		Product product = new Product();
-		product.setSeller(Seller.BM.name());
-		product.setUnit(Constants.UNIT);
-		product.setPath(path);
-		Document doc = null;
-		try {
-			doc = Jsoup.parse(new File(path), Charset.forName("UTF-8").name());
-		} catch (IllegalArgumentException exc) {
-			return null;
+	@Override
+	public boolean isEmptyProduct(final Element doc) {
+		if (doc.getElementsByClass(CONTENT_CLASS) != null && doc.getElementsByClass(CONTENT_CLASS).first() != null
+			&& doc.getElementsByClass(CONTENT_CLASS).first().getElementsByClass(MESSAGE_CLASS) != null
+			&& doc.getElementsByClass(CONTENT_CLASS).first().getElementsByClass(MESSAGE_CLASS).first() != null && "Aucun produit ne correspond à la sélection."
+			.equals(doc.getElementsByClass(CONTENT_CLASS).first().getElementsByClass(MESSAGE_CLASS).first().text())) {
+			return true;
 		}
-		if (doc.getElementsByClass("product-content") != null && doc.getElementsByClass("product-content").first() != null
-			&& doc.getElementsByClass("product-content").first().getElementsByClass("note-msg") != null
-			&& doc.getElementsByClass("product-content").first().getElementsByClass("note-msg").first() != null) {
-			if (doc.getElementsByClass("product-content").first().getElementsByClass("note-msg").first().text()
-				.equals("Aucun produit ne correspond à la sélection.")) {
-				return null;
-			}
-		}
-		if (doc.getElementsByClass("magento-product-decscription") != null && doc.getElementsByClass("magento-product-decscription").first() != null) {
-			Element elementDescription = doc.getElementsByClass("magento-product-decscription").first();
-			String description = elementDescription.ownText();
-			product.setShortDescription(elementDescription.ownText());
+		return false;
+	}
+
+	@Override
+	public boolean buildDescription(final Element doc, Product product) {
+		if (doc.getElementsByClass(DESCRIPTION_CLASS) != null && doc.getElementsByClass(DESCRIPTION_CLASS).first() != null) {
+			Element elementDescription = doc.getElementsByClass(DESCRIPTION_CLASS).first();
+			StringBuilder builderDescription = new StringBuilder();
+			builderDescription.append(elementDescription.ownText());
 			for (Element element : elementDescription.select("li")) {
-				description += " , " + element.text();
+				builderDescription.append(" , ").append(element.text());
 			}
-			product.setDescription(description);
+			product.setDescription(builderDescription.toString());
+			return true;
 		} else {
-			return null;
+			return false;
 		}
+	}
+
+	@Override
+	public boolean buildShortDescription(Element doc, Product product) {
+		if (doc.getElementsByClass(DESCRIPTION_CLASS) != null && doc.getElementsByClass(DESCRIPTION_CLASS).first() != null) {
+			Element elementDescription = doc.getElementsByClass(DESCRIPTION_CLASS).first();
+			product.setShortDescription(elementDescription.ownText());
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	@Override
+	public boolean buildUnit(final Element doc, Product product) {
+		product.setUnit(Constants.UNIT);
+		if (doc.getElementsByClass(NEW_PRICE_CLASS) != null && doc.getElementsByClass(NEW_PRICE_CLASS).first() != null
+			&& doc.getElementsByClass(NEW_PRICE_CLASS).first().select(SMALL_CLASS) != null) {
+			String strUnit = doc.getElementsByClass(NEW_PRICE_CLASS).first().select(SMALL_CLASS).text();
+			Double priceUnit = getPrice(strUnit);
+			if (priceUnit != null && product.getPrice().equals(priceUnit) && strUnit.contains("/m²")) {
+					product.setUnit("le m²");
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildTitle(final Element doc, Product product) {
+		product.setTitle(doc.select("h1").first().text());
+		return true;
+	}
+
+	@Override
+	public boolean buildUrl(final Element doc, Product product) {
 		Elements elements = doc.select("link");
 		for (Element link : elements) {
-			if (link.attr("rel").equals("canonical")) {
+			if ("canonical".equals(link.attr("rel"))) {
 				product.setUrl(link.attr("href"));
 			}
 		}
-		//		Element element = doc.getElementsByClass("content-fiche-produit").first();
-		product.setTitle(doc.select("h1").first().text());
-		if (doc.getElementsByClass("old-price") != null && doc.getElementsByClass("old-price").first() != null) {
-			product.setOldPrice(getPrice(doc.getElementsByClass("old-price").first().text()));
+		return true;
+	}
+
+	@Override
+	public boolean buildOldPrice(final Element doc, Product product) {
+		if (doc.getElementsByClass(OLD_PRICE_CLASS) != null && doc.getElementsByClass(OLD_PRICE_CLASS).first() != null) {
+			product.setOldPrice(getPrice(doc.getElementsByClass(OLD_PRICE_CLASS).first().text()));
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildPrice(final Element doc, Product product) {
 		product.setPrice(getPrice(doc.getElementsByClass("new-price").first().text()));
+		return true;
+	}
 
-		String strUnit = doc.getElementsByClass("new-price").first().select("small").text();
-		Double priceUnit = getPrice(strUnit);
-		if (product.getPrice().equals(priceUnit) && strUnit.contains("/m²")) {
-			product.setUnit("le m²");
-		}
-
+	@Override
+	public boolean buildImage(final Element doc, Product product) {
 		product.setImage(doc.getElementsByClass("fiche-product-image-container").select("img").attr("src"));
 		if (!product.getImage().contains("image")) {
 			product.setImage(doc.getElementsByClass("jcarousel-clip jcarousel-clip-vertical").select("li").attr("data-target"));
 		}
+		return true;
+	}
 
+	@Override
+	public boolean buildRate(final Element doc, Product product) {
+		for (Element element : doc.select("a")) {
+			if (element.hasClass("bv-rating")) {
+				product.setRate(Integer.parseInt(element.text().substring(0, element.text().indexOf('.'))));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildSeller(Product product) {
+		product.setSeller(Seller.BM.name());
+		return true;
+	}
+
+	@Override
+	public boolean buildCategories(final Element doc, Product product) {
 		Element breadcrumb = doc.getElementById("breadcrumb");
 		Elements links = breadcrumb.select("a");
-		String categories = "";
+		String categories;
+		StringBuilder builderCategories = new StringBuilder();
 		String splitCategories = " - ";
 		for (Element link : links) {
 			if (link.attr("href") != null && StringUtils.isNotEmpty(link.attr("href"))) {
-				categories += link.text() + splitCategories;
+				builderCategories.append(link.text()).append(splitCategories);
 			}
 		}
+		categories = builderCategories.toString();
 		if (categories.endsWith(splitCategories)) {
 			categories = categories.substring(0, categories.length() - splitCategories.length());
 		}
 		product.setCategorieSeller(categories);
-		for (Element element : doc.select("a")) {
-			if (element.hasClass("bv-rating")) {
-				product.setRate(Integer.parseInt(element.text().substring(0, element.text().indexOf("."))));
-			}
-		}
-		Utils.checkProduct(product);
-
-		return product;
+		return true;
 	}
 
 	protected Double getPrice(String text) {
 		Pattern p = Pattern.compile("((\\d+)\\D(\\d{3}[.,]\\d+))");
 		Matcher m = p.matcher(text);
 		if (m.find()) {
-			String price = m.group(2) + m.group(3);// + "." + m.group(2);
+			String price = m.group(2) + m.group(3);
 			return new Double(price.replaceAll(",", "."));
 		} else {
 			p = Pattern.compile("(\\d+[.,]\\d+)");

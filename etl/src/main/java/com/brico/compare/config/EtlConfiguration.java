@@ -11,8 +11,11 @@ import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
  */
 @Configuration
 @ComponentScan(basePackages = "com.brico.compare")
-@PropertySource(value = { "classpath:application.yml"})
+@PropertySource(value = { "classpath:application.yml" })
 public class EtlConfiguration {
+	private EtlConfiguration() {
+	}
+
 	@Bean
 	public static PropertySourcesPlaceholderConfigurer propertySourcesPlaceholderConfigurer() {
 		return new PropertySourcesPlaceholderConfigurer();

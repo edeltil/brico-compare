@@ -1,18 +1,11 @@
 package com.brico.compare.parser;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.StringUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -22,127 +15,152 @@ import org.jsoup.select.Elements;
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
 import com.brico.compare.entity.Seller;
-import com.brico.compare.utils.Utils;
 
 /**
  * Created by edeltil on 23/01/2017.
  */
-public class LMParser implements Parser {
+public class LMParser extends Parser {
 
-	private static Logger LOGGER = Logger.getLogger("LMParser");
+	private static final Logger LOGGER = Logger.getLogger("LMParser");
 
-	private String directory;
-	private String path;
+	private static final String CONTENT_ATTR = "content";
+	private static final String BARRED_CLASS = "barred";
+
+	private static final List ORDERS = new ArrayList<>();
+	static {
+		ORDERS.add(ExecutionMethod.TITLE);
+		ORDERS.add(ExecutionMethod.IMAGE);
+		ORDERS.add(ExecutionMethod.URL);
+		ORDERS.add(ExecutionMethod.SHORT_DESCRIPTION);
+		ORDERS.add(ExecutionMethod.DESCRIPTION);
+		ORDERS.add(ExecutionMethod.PRICE);
+		ORDERS.add(ExecutionMethod.UNIT);
+		ORDERS.add(ExecutionMethod.OLD_PRICE);
+		ORDERS.add(ExecutionMethod.CATEGORIES);
+		ORDERS.add(ExecutionMethod.RATE);
+	}
 
 	public LMParser(String directory, String path) {
-		this.directory = directory;
-		this.path = path;
+		super(directory, path);
 	}
 
-	public List<Product> parseDirectory() throws IOException {
-		List<Product> products = new ArrayList<>();
-		Collection<File> files = FileUtils.listFiles(new File(directory + File.separator + path), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-		for (File file : files) {
-			LOGGER.log(Level.FINEST, file.getPath());
-			Product product = parseHTML(file.getPath());
-			if (product != null) {
-				products.add(product);
-			}
-		}
-		return products;
+	@Override
+	public List<ExecutionMethod> getOrders() {
+		return ORDERS;
 	}
 
-	public Product parseHTML(String path) throws IOException {
-		Document doc = Jsoup.parse(new File(path), Charset.forName("UTF-8").name());
-		Elements elements = doc.select("meta");
-		Product product = new Product();
-		product.setSeller(Seller.LM.name());
-		product.setPath(path);
-		for (Element element : elements) {
-			if ("twitter:title".equals(element.attr("name"))) {
-				product.setTitle(element.attr("content"));
-			} else if ("twitter:image".equals(element.attr("name"))) {
-				if ("http://www.leroymerlin.fr".equals(element.attr("content"))) {
-					return null;
-				}
-				product.setImage(element.attr("content"));
-			} else if ("og:url".equals(element.attr("property"))) {
-				if (element.attr("content").equals("http://www.leroymerlin.fr/")) {
-					return null;
-				}
-				product.setUrl(element.attr("content"));
-			} else if ("twitter:description".equals(element.attr("name"))) {
-				String shortDescription = element.attr("content").trim();
-				shortDescription = shortDescription.replaceAll("(\\s\\s)+", ",");
-				product.setShortDescription(shortDescription);
-			}
-		}
-		Element allDescription = doc.getElementsByClass("tech-desc").first();
-		if (allDescription != null) {
-			String descriptionHTML = allDescription.outerHtml();
-			Document descriptionDoc = Jsoup.parse(descriptionHTML);
-			Elements titles = descriptionDoc.select("th");
-			Elements values = descriptionDoc.select("td");
-			String description = "";
-			for (int i = 0; i < titles.size(); i++) {
-				description += titles.get(i).text() + " : " + values.get(i).text();
-				if (i != titles.size() - 1) {
-					description += ", ";
-				}
-			}
-			product.setDescription(description);
-		} else {
-			Element caracteristiques_tech = doc.getElementsByClass("caracteristiques-techniques-table").first();
-			if (caracteristiques_tech != null) {
-				String descriptionHTML = caracteristiques_tech.outerHtml();
-				Document descriptionDoc = Jsoup.parse(descriptionHTML);
-				Elements titles = descriptionDoc.select("th");
-				Elements values = descriptionDoc.select("td");
-				String description = "";
-				for (int i = 0; i < titles.size(); i++) {
-					description += titles.get(i).text() + " : " + values.get(i).text();
-					if (i != titles.size() - 1) {
-						description += ", ";
-					}
-				}
-				product.setDescription(description);
-			} else {
-				Element techDescription = doc.getElementsByClass("desc-product").first();
-				if (techDescription != null) {
-					String descriptionHTML = allDescription.outerHtml();
-					Document descriptionDoc = Jsoup.parse(descriptionHTML);
-					Elements titles = descriptionDoc.select("th");
-					Elements values = descriptionDoc.select("td");
-					String description = "";
-					for (int i = 0; i < titles.size(); i++) {
-						description += titles.get(i).text() + " : " + values.get(i).text();
-						if (i != titles.size() - 1) {
-							description += ", ";
-						}
-					}
-					product.setDescription(description);
-				}
-			}
-		}
-		Element price = doc.getElementsByClass("price").first().select("strong").first();
-		try {
-			product.setPrice(getPrice(price.text()));
-		} catch (NumberFormatException nfe) {
-		}
+	@Override
+	public boolean isEmptyProduct(Element doc) {
+		return false;
+	}
+
+	@Override
+	public boolean buildUnit(Element doc, Product product) {
 		Element unit = doc.getElementsByClass("price").first().select("span").first();
 		if (unit.text().contains("m²")) {
 			product.setUnit(Constants.M2);
 		} else {
 			product.setUnit(Constants.UNIT);
 		}
-		if (doc.getElementsByClass("barred") != null && doc.getElementsByClass("barred").first() != null
-			&& doc.getElementsByClass("barred").first().select("em") != null) {
-			Element oldprice = doc.getElementsByClass("barred").first().select("em").last();
-			if (StringUtils.isNotEmpty(oldprice.text().substring(0, oldprice.text().lastIndexOf("0") + 1))) {
+		return true;
+	}
+
+	@Override
+	public boolean buildTitle(Element doc, Product product) {
+		Elements elements = doc.select("meta");
+		for (Element element : elements) {
+			if ("twitter:title".equals(element.attr("name"))) {
+				product.setTitle(element.attr(CONTENT_ATTR));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildDescription(Element doc, Product product) {
+		Element allDescription = doc.getElementsByClass("tech-desc").first();
+		if (allDescription != null) {
+			setDescription(product, allDescription);
+		} else {
+			Element caracteristiquesTech = doc.getElementsByClass("caracteristiques-techniques-table").first();
+			if (caracteristiquesTech != null) {
+				setDescription(product, caracteristiquesTech);
+			} else {
+				Element techDescription = doc.getElementsByClass("desc-product").first();
+				if (techDescription != null) {
+					setDescription(product, techDescription);
+				}
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildShortDescription(Element doc, Product product) {
+		Elements elements = doc.select("meta");
+		for (Element element : elements) {
+			if ("twitter:description".equals(element.attr("name"))) {
+				String shortDescription = element.attr(CONTENT_ATTR).trim();
+				shortDescription = shortDescription.replaceAll("(\\s\\s)+", ",");
+				product.setShortDescription(shortDescription);
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildUrl(Element doc, Product product) {
+		Elements elements = doc.select("meta");
+		for (Element element : elements) {
+			if ("og:url".equals(element.attr("property"))) {
+				if ("http://www.leroymerlin.fr/".equals(element.attr(CONTENT_ATTR))) {
+					return false;
+				}
+				product.setUrl(element.attr(CONTENT_ATTR));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildOldPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(BARRED_CLASS) != null && doc.getElementsByClass(BARRED_CLASS).first() != null
+			&& doc.getElementsByClass(BARRED_CLASS).first().select("em") != null) {
+			Element oldprice = doc.getElementsByClass(BARRED_CLASS).first().select("em").last();
+			if (StringUtils.isNotEmpty(oldprice.text().substring(0, oldprice.text().lastIndexOf('0') + 1))) {
 				product.setOldPrice(getPrice(oldprice.text()));
 			}
-		} else {
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildPrice(Element doc, Product product) {
+		Element price = doc.getElementsByClass("price").first().select("strong").first();
+		try {
+			product.setPrice(getPrice(price.text()));
+		} catch (NumberFormatException nfe) {
+			LOGGER.fine("Price not readable : ");
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildImage(Element doc, Product product) {
+		Elements elements = doc.select("meta");
+		for (Element element : elements) {
+			if ("twitter:image".equals(element.attr("name"))) {
+				if ("http://www.leroymerlin.fr".equals(element.attr(CONTENT_ATTR))) {
+					return false;
+				}
+				product.setImage(element.attr(CONTENT_ATTR));
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildCategories(Element doc, Product product) {
 		Element elementCategories = doc.getElementsByClass("breadcrumb").first();
 		if (elementCategories != null) {
 			Elements elementsCategories = elementCategories.select("li");
@@ -151,7 +169,7 @@ public class LMParser implements Parser {
 			for (int i = 0; i < elementsCategories.size(); i++) {
 				if (elementsCategories.get(i).select("i") != null && !elementsCategories.get(i).select("i").isEmpty()) {
 					Element cat = elementsCategories.get(i).select("i").first();
-					if (!cat.text().equals("Produits")) {
+					if (!"Produits".equals(cat.text())) {
 						categories += cat.text() + splitCategories;
 					}
 				}
@@ -161,8 +179,13 @@ public class LMParser implements Parser {
 			}
 			product.setCategorieSeller(categories);
 		}
-		Utils.checkProduct(product);
-		return product;
+		return true;
+	}
+
+	@Override
+	public boolean buildSeller(Product product) {
+		product.setSeller(Seller.LM.name());
+		return true;
 	}
 
 	private Double getPrice(String text) {
@@ -173,6 +196,21 @@ public class LMParser implements Parser {
 			return new Double(price.replaceAll(",", ".").replaceAll(" ", ""));
 		}
 		return null;
+	}
+
+	private void setDescription(final Product product, final Element desc) {
+		String descriptionHTML = desc.outerHtml();
+		Document descriptionDoc = Jsoup.parse(descriptionHTML);
+		Elements titles = descriptionDoc.select("th");
+		Elements values = descriptionDoc.select("td");
+		String description = "";
+		for (int i = 0; i < titles.size(); i++) {
+			description += titles.get(i).text() + " : " + values.get(i).text();
+			if (i != titles.size() - 1) {
+				description += ", ";
+			}
+		}
+		product.setDescription(description);
 	}
 
 }

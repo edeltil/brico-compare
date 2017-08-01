@@ -44,7 +44,7 @@ public class CategoryControllerTest {
 		assertEquals(sellers.size(), Seller.values().length);
 
 		for (Seller seller : Seller.values()) {
-			assertTrue(seller.name() + " not found.", sellers.contains(seller.name()));
+			assertTrue(seller.name() + " not found.", sellers.contains(seller.getLabel()));
 		}
 	}
 

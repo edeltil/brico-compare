@@ -1,79 +1,72 @@
 package com.brico.compare.parser;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.lang.StringUtils;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
 import com.brico.compare.entity.Seller;
-import com.brico.compare.utils.Utils;
 
 /**
  * Created by edeltil on 23/01/2017.
  */
-public class VialParser implements Parser {
+public class VialParser extends AbstractParser {
 
-	private static Logger LOGGER = Logger.getLogger("VialParser");
+	private static final String PRIX_CLASS = "produit-prix";
 
-	private String host;
-	private String directory;
-	private String path;
+	private static final List ORDERS = new ArrayList<>();
+	static{
+		ORDERS.add(ExecutionMethod.UNIT);
+		ORDERS.add(ExecutionMethod.IMAGE);
+		ORDERS.add(ExecutionMethod.TITLE);
+		ORDERS.add(ExecutionMethod.SHORT_DESCRIPTION);
+		ORDERS.add(ExecutionMethod.DESCRIPTION);
+		ORDERS.add(ExecutionMethod.URL);
+		ORDERS.add(ExecutionMethod.PRICE);
+		ORDERS.add(ExecutionMethod.OLD_PRICE);
+		ORDERS.add(ExecutionMethod.CATEGORIES);
+		ORDERS.add(ExecutionMethod.RATE);
+	}
 
 	public VialParser(String directory, String path, String host) {
-		this.host = host;
-		this.directory = directory;
-		this.path = path;
+		super(directory, path, host);
 	}
 
-	public List<Product> parseDirectory() throws IOException {
-		List<Product> products = new ArrayList<>();
-		Collection<File> files = FileUtils.listFiles(new File(directory + File.separator + path), TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE);
-		for (File file : files) {
-			LOGGER.log(Level.FINEST, file.getPath());
-			Product product = parseHTML(file.getPath());
-			if (product != null) {
-				products.add(product);
-			}
-		}
-		return products;
+	@Override
+	public List<ExecutionMethod> getOrders() {
+		return ORDERS;
 	}
 
-	public Product parseHTML(String path) throws IOException {
-		Document doc;
-		try {
-			doc = Jsoup.parse(new File(path), Charset.forName("UTF-8").name());
-		} catch (IllegalArgumentException exc) {
-			return null;
-		}
-		Product product = new Product();
-		product.setSeller(Seller.Vial.name());
-		product.setPath(path);
-		//TODO
-		product.setUnit(Constants.UNIT);
+	@Override
+	public boolean isEmptyProduct(Element doc) {
 		Element image = doc.getElementById("lien-zoom");
 		if (image == null) {
-			return null;
+			return true;
 		}
-		product.setImage(host + image.attr("href"));
-		product.setTitle(doc.getElementsByClass("titre-produit").first().text());
-		product.setShortDescription(doc.getElementsByClass("titre-produit").first().text());
+		return false;
+	}
 
+	@Override
+	public boolean buildUnit(Element doc, Product product) {
+		//TODO
+		product.setUnit(Constants.UNIT);
+		return true;
+	}
+
+	@Override
+	public boolean buildTitle(Element doc, Product product) {
+		product.setTitle(doc.getElementsByClass("titre-produit").first().text());
+		return true;
+	}
+
+	@Override
+	public boolean buildDescription(Element doc, Product product) {
 		Element fDescription = doc.getElementById("description-produit");
 		String description = "";
 		if (fDescription != null) {
@@ -83,12 +76,46 @@ public class VialParser implements Parser {
 			}
 		}
 		product.setDescription(description);
-		product.setUrl(host + doc.getElementById("ajout-panier").attr("action"));
+		return true;
+	}
 
-		if (doc.getElementsByClass("produit-prix") != null && doc.getElementsByClass("produit-prix").first() != null) {
-			product.setPrice(getPrice(doc.getElementsByClass("produit-prix").first().text()));
+	@Override
+	public boolean buildShortDescription(Element doc, Product product) {
+		product.setShortDescription(doc.getElementsByClass("titre-produit").first().text());
+		return true;
+	}
+
+	@Override
+	public boolean buildUrl(Element doc, Product product) {
+		product.setUrl(host + doc.getElementById("ajout-panier").attr("action"));
+		return true;
+	}
+
+	@Override
+	public boolean buildOldPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(PRIX_CLASS) != null && doc.getElementsByClass(PRIX_CLASS).first() != null) {
 			product.setOldPrice(getOldPrice(doc.getElementsByClass("produit-prix-barre").first().text()));
 		}
+		return true;
+	}
+
+	@Override
+	public boolean buildPrice(Element doc, Product product) {
+		if (doc.getElementsByClass(PRIX_CLASS) != null && doc.getElementsByClass(PRIX_CLASS).first() != null) {
+			product.setPrice(getPrice(doc.getElementsByClass(PRIX_CLASS).first().text()));
+		}
+		return true;
+	}
+
+	@Override
+	public boolean buildImage(Element doc, Product product) {
+		Element image = doc.getElementById("lien-zoom");
+		product.setImage(host + image.attr("href"));
+		return true;
+	}
+
+	@Override
+	public boolean buildCategories(Element doc, Product product) {
 		if (doc.getElementsByClass("fil-d-ariane") != null) {
 			String categories = "";
 			String splitCategories = " - ";
@@ -101,8 +128,13 @@ public class VialParser implements Parser {
 			}
 			product.setCategorieSeller(categories);
 		}
-		Utils.checkProduct(product);
-		return product;
+		return true;
+	}
+
+	@Override
+	public boolean buildSeller(Product product) {
+		product.setSeller(Seller.VIAL.name());
+		return true;
 	}
 
 	protected Double getPrice(String text) {

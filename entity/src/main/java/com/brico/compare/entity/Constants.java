@@ -5,10 +5,13 @@ package com.brico.compare.entity;
  */
 public class Constants {
 
-	public final static String INDEX_ELASTIC = "brico";
-	public final static String TYPE_ELASTIC = "product";
+	public static final String INDEX_ELASTIC = "brico";
+	public static final String TYPE_ELASTIC = "product";
 
-	public final static String UNIT = "unit";
-	public final static String M2 = "le m²";
+	public static final String UNIT = "unit";
+	public static final String M2 = "le m²";
+
+	private Constants() {
+	}
 
 }

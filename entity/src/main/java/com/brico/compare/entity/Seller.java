@@ -6,10 +6,10 @@ package com.brico.compare.entity;
 public enum Seller {
 	BM("BricoMarché"),
 	BD("BricoDépôt"),
-	Casto("Castorama"),
-	Lapeyre("Lapeyre"),
+	CASTO("Castorama"),
+	LAPEYRE("Lapeyre"),
 	LM("Leroy Merlin"),
-	Vial("Vial");
+	VIAL("Vial");
 
 	private String label;
 

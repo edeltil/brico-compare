@@ -1,5 +1,6 @@
 package com.brico.compare.controller;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.common.Nullable;
@@ -29,20 +30,22 @@ public class SearchController {
 	@RequestMapping("/search")
 	public List<SimpleProduct> getProducts(@RequestParam(value = "searchCategories") final List<String> searchCategories,
 		@RequestParam(value = "page", required = false) @Nullable Integer page, @RequestParam(value = "size", required = false) @Nullable Integer size) {
-		String buildCategory = "";
+		StringBuilder stringBuilder = new StringBuilder();
+		String buildCategory;
 		String splitCategories = " - ";
 		for (String search : searchCategories) {
-			buildCategory += search + splitCategories;
+			stringBuilder.append( search + splitCategories);
 		}
-		if (buildCategory.endsWith(splitCategories)) {
-			buildCategory = buildCategory.substring(0, buildCategory.length() - splitCategories.length());
+		buildCategory = stringBuilder.toString();
+		if (stringBuilder.toString().endsWith(splitCategories)) {
+			buildCategory = stringBuilder.substring(0, buildCategory.length() - splitCategories.length());
 		}
 		for (Category category : categories.getCategories()) {
 			if (category.getLabel().equalsIgnoreCase(buildCategory)) {
 				if (page != null && size != null) {
 					List<SimpleProduct> allProducts = searchService.search(category.getSearchs());
 					if (allProducts.size() > ((page + 1) * size)) {
-						return allProducts.subList(page * size, ((page + 1) * size));
+						return allProducts.subList(page * size, (page + 1) * size);
 					}else{
 						return allProducts.subList(page * size, allProducts.size());
 					}
@@ -51,6 +54,6 @@ public class SearchController {
 				}
 			}
 		}
-		return null;
+		return new ArrayList<>();
 	}
 }

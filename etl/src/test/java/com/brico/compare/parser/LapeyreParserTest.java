@@ -25,7 +25,7 @@ public class LapeyreParserTest {
 	public void testParserLapeyre() throws IOException {
 		LapeyreParser parser = new LapeyreParser("C:/_tmp/perso", "www.lapeyre.fr");
 		/*Product 1 C:\DEXXIS\samples\etl\src\test\resources\BricoDepot\product1_BD.html*/
-		Product product1 = parser.parseHTML(getClass().getResource("/Lapeyre/product1.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/Lapeyre/product1.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("Abattant Classic Chêne", product1.getTitle());
 		Assert.assertEquals(
@@ -52,9 +52,9 @@ public class LapeyreParserTest {
 
 		Assert.assertEquals("Fenêtres", product1.getCategorieSeller());
 		/*Product 2*/
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/Lapeyre/product2.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/Lapeyre/product2.html").getPath()).isPresent());
 				/*Product 3*/
-		Product product3 = parser.parseHTML(getClass().getResource("/Lapeyre/product3.html").getPath());
+		Product product3 = parser.parseHTML(getClass().getResource("/Lapeyre/product3.html").getPath()).get();
 		LOGGER.log(Level.INFO, product3.toString());
 		Assert.assertEquals("Baie coulissante Excellence Alubois", product3.getTitle());
 		Assert.assertEquals(
@@ -78,10 +78,10 @@ public class LapeyreParserTest {
 			"Bois côté intérieur : Essences Pin et Chêne: finition Pin naturel, Pin lasuré cendré, Pin lasuré sable, Chêne naturel, Chêne blanchi, Chêne moyen."));
 		Assert.assertEquals("Fenêtres - Baies coulissantes", product3.getCategorieSeller());
 				/*Product 4*/
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/Lapeyre/product4.html").getPath()));
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/Lapeyre/product5.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/Lapeyre/product4.html").getPath()).isPresent());
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/Lapeyre/product5.html").getPath()).isPresent());
 		/*Product 7*/
-		Product product7 = parser.parseHTML(getClass().getResource("/Lapeyre/product7.html").getPath());
+		Product product7 = parser.parseHTML(getClass().getResource("/Lapeyre/product7.html").getPath()).get();
 		LOGGER.log(Level.INFO, product7.toString());
 		Assert.assertEquals("Parquet contrecollé Extrem Silence Chêne Blanchi brossé verni", product7.getTitle());
 		Assert.assertEquals(
@@ -103,7 +103,7 @@ public class LapeyreParserTest {
 
 	@Test
 	public void testParser() throws IOException {
-		LapeyreParser parser = new LapeyreParser("C:/_tmp/perso", "www.lapeyre.fr");
+		LapeyreParser parser = new LapeyreParser("C:/_tmp/perso", "www.lapeyre.fr/");
 		List<Product> products = parser.parseDirectory();
 		assertNotNull(products);
 		for (Product product : products) {
@@ -112,7 +112,7 @@ public class LapeyreParserTest {
 			assertNotNull("Error on image : " + product.getPath(), product.getImage());
 			assertNotNull("Error on short description : " + product.getPath(), product.getShortDescription());
 			assertNotNull("Error on seller : " + product.getPath(), product.getSeller());
-			assertNotNull("Error on seller : " + product.getPath(), product.getSeller().equals(Seller.Lapeyre.name()));
+			assertNotNull("Error on seller : " + product.getPath(), product.getSeller().equals(Seller.LAPEYRE.name()));
 			assertNotNull("Error on categorie seller : " + product.getPath(), product.getCategorieSeller());
 			assertNotNull("Error on description : " + product.getPath(), product.getDescription());
 			assertNotNull("Error on date : " + product.getPath(), product.getDate());

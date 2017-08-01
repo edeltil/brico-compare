@@ -25,9 +25,9 @@ public class VialParserTest {
 
 	@Test
 	public void testParserVial() throws IOException {
-		VialParser parser = new VialParser("http://www.vial-habitat.com/", "C:/_tmp/perso", "www.vial-habitat.com");
+		VialParser parser = new VialParser( "C:/_tmp/perso", "www.vial-habitat.com","http://www.vial-habitat.com/");
 		/*Product 1*/
-		Product product1 = parser.parseHTML(getClass().getResource("/Vial/product1.html").getPath());
+		Product product1 = parser.parseHTML(getClass().getResource("/Vial/product1.html").getPath()).get();
 		LOGGER.log(Level.INFO, product1.toString());
 		Assert.assertEquals("1 porte cuisine décor Havane", product1.getTitle());
 		Assert.assertEquals("1 porte cuisine décor Havane", product1.getShortDescription());
@@ -42,9 +42,9 @@ public class VialParserTest {
 			.contains("Façade post-formée sur les deux chants verticaux les chants horizontaux sont plaqués en PVC 1 mm d'épaisseur."));
 		Assert.assertEquals("Cuisine tendance décor - Cuisine tendance décor Havane", product1.getCategorieSeller());
 		/*Product 2*/
-		Assert.assertNull(parser.parseHTML(getClass().getResource("/Vial/product2.html").getPath()));
+		Assert.assertFalse(parser.parseHTML(getClass().getResource("/Vial/product2.html").getPath()).isPresent());
 		/*Product 3*/
-		Product product2 = parser.parseHTML(getClass().getResource("/Vial/product3.html").getPath());
+		Product product2 = parser.parseHTML(getClass().getResource("/Vial/product3.html").getPath()).get();
 		LOGGER.log(Level.INFO, product2.toString());
 		Assert.assertEquals("CONCERTO Blanc Pur", product2.getTitle());
 		Assert.assertEquals("CONCERTO Blanc Pur", product2.getShortDescription());
@@ -60,7 +60,7 @@ public class VialParserTest {
 
 	@Test
 	public void testParser() throws IOException {
-		VialParser parser = new VialParser("http://www.vial-habitat.com/", "C:/_tmp/perso", "www.vial-habitat.com");
+		VialParser parser = new VialParser( "C:/_tmp/perso", "www.vial-habitat.com","http://www.vial-habitat.com/");
 		List<Product> products = parser.parseDirectory();
 		assertNotNull(products);
 		for (Product product : products) {
@@ -69,7 +69,7 @@ public class VialParserTest {
 			assertNotNull("Error on image : " + product.getPath(), product.getImage());
 			assertNotNull("Error on short description : " + product.getPath(), product.getShortDescription());
 			assertNotNull("Error on seller : " + product.getPath(), product.getSeller());
-			assertTrue("Error on seller : " + product, product.getSeller().equals(Seller.Vial.name()));
+			assertTrue("Error on seller : " + product, product.getSeller().equals(Seller.VIAL.name()));
 			assertNotNull("Error on categorie seller : " + product.getPath(), product.getCategorieSeller());
 			assertNotNull("Error on description : " + product.getPath(), product.getDescription());
 			assertNotNull("Error on date : " + product.getPath(), product.getDate());

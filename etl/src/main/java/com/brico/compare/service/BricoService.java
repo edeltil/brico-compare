@@ -1,5 +1,7 @@
 package com.brico.compare.service;
 
+import javax.annotation.PreDestroy;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -13,9 +15,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.brico.compare.entity.Constants;
 import com.brico.compare.entity.Product;
@@ -26,7 +25,7 @@ import com.google.gson.Gson;
  * Created by edeltil on 25/01/2017.
  */
 public class BricoService {
-	private static Logger LOGGER = Logger.getLogger("BricoService");
+	private static final Logger LOGGER = Logger.getLogger("BricoService");
 
 	private Client client;
 
@@ -49,5 +48,10 @@ public class BricoService {
 			LOGGER.log(Level.FINE, "Insert OK " + response.getId());
 		}
 		LOGGER.log(Level.INFO, "------------------------------ POPULATE END FOR " + parser.getClass().getSimpleName() + " ------------------------------");
+	}
+
+	@PreDestroy
+	public void clean (){
+		client.close();
 	}
 }

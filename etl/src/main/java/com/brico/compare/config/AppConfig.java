@@ -60,74 +60,62 @@ public class AppConfig implements SchedulingConfigurer {
 
 	@Bean
 	public BricoService bmService() throws IOException {
-		BricoService bricoService = new BricoService(new BMParser(directory, pathBricoMarche));
-		return bricoService;
+		return new BricoService(new BMParser(directory, pathBricoMarche));
 	}
 
 	@Bean
 	public BricoService bdService() throws IOException {
-		BricoService bricoService = new BricoService(new BricoDepotParser(directory, pathBricoDepot, hostBricoDepot));
-		return bricoService;
+		return new BricoService(new BricoDepotParser(directory, pathBricoDepot, hostBricoDepot));
 	}
 
 	@Bean
 	public BricoService castoService() throws IOException {
-		BricoService bricoService = new BricoService(new CastoParser(directory, pathCasto, hostCasto));
-		return bricoService;
+		return new BricoService(new CastoParser(directory, pathCasto, hostCasto));
 	}
 
 	@Bean
 	public BricoService lpService() throws IOException {
-		BricoService bricoService = new BricoService(new LapeyreParser(directory, pathLapeyre));
-		return bricoService;
+		return new BricoService(new LapeyreParser(directory, pathLapeyre));
 	}
 
 	@Bean
 	public BricoService lmService() throws IOException {
-		BricoService bricoService = new BricoService(new LMParser(directory, pathLeroymerlin));
-		return bricoService;
+		return new BricoService(new LMParser(directory, pathLeroymerlin));
 	}
 
 	@Bean
 	public BricoService vialService() throws IOException {
-		BricoService bricoService = new BricoService(new VialParser(directory, pathVial, hostVial));
-		return bricoService;
+		return new BricoService(new VialParser(directory, pathVial, hostVial));
 	}
 
 	@Bean
 	public CleanService bmCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.BM);
-		return cleanService;
+		return new CleanService(Seller.BM);
 	}
 
 	@Bean
 	public CleanService bdCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.BD);
-		return cleanService;
+		return new CleanService(Seller.BD);
 	}
 
 	@Bean
 	public CleanService castoCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.Casto);
-		return cleanService;
+		return new CleanService(Seller.CASTO);
 	}
 
 	@Bean
 	public CleanService lapeyreCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.Lapeyre);
-		return cleanService;
+		return new CleanService(Seller.LAPEYRE);
 	}
 
 	@Bean
 	public CleanService lmCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.LM);
-		return cleanService;
+		return new CleanService(Seller.LM);
 	}
 
 	@Bean
 	public CleanService vialCleanService() throws IOException {
-		CleanService cleanService = new CleanService(Seller.Vial);
-		return cleanService;
+		return new CleanService(Seller.VIAL);
 	}
 
 	@Override

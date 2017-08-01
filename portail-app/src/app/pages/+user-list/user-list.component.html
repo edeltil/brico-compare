@@ -1,0 +1,16 @@
+<h1>Produits</h1>
+
+<ul class="users list-unstyled">
+  <li *ngFor="let u of users" class="clearfix" [mptStyles]="[styles.list]">
+    <mpt-gravatar [hash]="u.avatarHash" [size]="60"
+                  [alt]="u.name" [mptStyles]="[styles.gravatar]"></mpt-gravatar>
+    <a [routerLink]="['/users', u.id]">{{u.name}}</a>
+  </li>
+</ul>
+
+<div class="clearfix">
+  <mpt-pager class="float-left"
+             (pageChanged)="onPageChanged($event.page)"
+             [totalPages]="totalPages"
+             [currentPage]="page"></mpt-pager>
+</div>

@@ -1,0 +1,45 @@
+<nav class="navbar navbar-toggleable-md navbar-inverse bg-inverse fixed-top">
+  <button class="navbar-toggler navbar-toggler-right" type="button"
+          [mptStyles]="[styles.navbarToggler]" (click)="toggleMenu($event)">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+  <a class="navbar-brand" [routerLink]="['/']">Brico-compare</a>
+  <div class="navbar-collapse" [hidden]="isMenuHidden">
+
+    <ul class="navbar-nav mr-auto">
+      <!--<li class="nav-item" routerLinkActive="active" *ngIf="isSignedIn">-->
+        <!--<a class="nav-link" [routerLink]="['/home']">Home</a>-->
+      <!--</li>-->
+
+      <li class="nav-item" routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: true}" >
+        <SELECT name="Category 1" [ngModel]="selectedCategory1" (ngModelChange)="onChangeCategory1($event)">
+          <option [value]="category1" *ngFor="let category1 of categories1">{{category1.label}}</option>
+        </SELECT>
+      </li>
+      <li class="nav-item" routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: true}" >
+        <SELECT name="Category 2" [ngModel]="selectedCategory2" (ngModelChange)="onChangeCategory2($event)">
+          <option [value]="category2" *ngFor="let category1 of categories2">{{category2.label}}</option>
+        </SELECT>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" [routerLink]="['/products']">Help</a>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <a class="nav-link" [routerLink]="['/login']">Sign in</a>
+      </li>
+      <li class="nav-item" routerLinkActive="active"
+          [routerLinkActiveOptions]="{exact: true}">
+        <SELECT name="Seller" [ngModel]="selectedSeller" (ngModelChange)="onChangeSeller($event)">
+          <option [value]="seller" *ngFor="let seller of sellers">{{seller.label}}</option>
+        </SELECT>
+      </li>
+      <li class="nav-item" routerLinkActive="active">
+        <form class="form-inline">
+          <button class="btn btn-outline-success my-2 my-sm-0" type="submit">Search</button>
+        </form>
+      </li>
+    </ul>
+  </div>
+</nav>

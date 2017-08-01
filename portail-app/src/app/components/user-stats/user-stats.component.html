@@ -1,0 +1,39 @@
+<div>
+
+  <section class="clearfix" [mptStyles]="[styles.section]">
+    <h2 [mptStyles]="[styles.userName]">
+      <mpt-gravatar [hash]="user?.avatarHash" [size]="68"
+                    [alt]="user?.name"
+                    [mptStyles]="[styles.gravatar]"></mpt-gravatar>
+      {{user?.name}}
+    </h2>
+    <span *ngIf="!shownOnProfile" [mptStyles]="[styles.userText]">
+      <a [routerLink]="['/users/' + user?.id]">view my profile</a>
+    </span>
+    <span *ngIf="!shownOnProfile" [mptStyles]="[styles.userText]">
+      <span [ngPlural]="user?.userStats?.micropostCnt || 0">
+        <template ngPluralCase="=0">No micropost</template>
+        <template ngPluralCase="=1">1 micropost</template>
+        <template ngPluralCase="other">{{(user?.userStats?.micropostCnt || 0)}} microposts</template>
+      </span>
+    </span>
+  </section>
+
+  <section class="clearfix" [mptStyles]="[styles.section]">
+    <div>
+      <a [routerLink]="['/users/' + user?.id, 'followings']"
+         [mptStyles]="[styles.relationshipsLeft]">
+        <strong [mptStyles]="[styles.relationshipsNumber]">{{user?.userStats?.followingCnt
+          || 0}}</strong>
+        followings
+      </a>
+      <a [routerLink]="['/users/' + user?.id, 'followers']"
+         [mptStyles]="[styles.relationshipsRight]">
+        <strong [mptStyles]="[styles.relationshipsNumber]">{{user?.userStats?.followerCnt
+          || 0}}</strong>
+        followers
+      </a>
+    </div>
+  </section>
+
+</div>

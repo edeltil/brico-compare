@@ -1,0 +1,10 @@
+etl.catalog.directory: C:/_tmp/perso
+products.bricomarche.path: www.bricomarche.com/nos-produits
+products.bricodepot.path: www.bricodepot.fr/marseille
+products.bricodepot.host: http://www.bricodepot.fr
+products.casto.path: www.castorama.fr/store
+products.casto.host: http://www.castorama.fr
+products.lapeyre.path: www.lapeyre.fr
+products.leroymerlin.path: www.leroymerlin.fr/v3/p/produits
+products.vial.path: www.vial-habitat.com
+products.vial.host: http://www.vial-habitat.com/
